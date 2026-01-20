@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 0;
+    }
+
+    .login-container,
+    .dashboard-container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h2, h3 {
+      text-align: center;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .balance-card {
+      text-align: center;
+      margin: 20px 0;
+      padding: 10px;
+      background: #e3f2fd;
+      border-radius: 10px;
+    }
+
+    .transaction-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    table th,
+    table td {
+      border-bottom: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .withdraw-btn {
+      background-color: #dc3545;
+    }
+
+    .withdraw-btn:hover {
+      background-color: #b02a37;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN PAGE -->
+  <div class="login-container" id="loginContainer">
+    <h2>Bank Login</h2>
+    <form id="loginForm">
+      <input type="text" placeholder="Username" id="username" required />
+      <input type="password" placeholder="Password" id="password" required />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <!-- DASHBOARD PAGE -->
+  <div class="dashboard-container" id="dashboardContainer" style="display: none;">
+    <header>
+      <h2 id="welcomeUser"></h2>
+      <button id="logoutBtn">Logout</button>
+    </header>
+
+    <div class="balance-card">
+      <h3>Available Balance: $<span id="balance">0.00</span></h3>
+    </div>
+
+    <div class="transaction-form">
+      <input name="title" placeholder="Transaction Title" id="txTitle" />
+      <input name="amount" type="number" placeholder="Amount" id="txAmount" />
+      <button id="depositBtn">Deposit</button>
+      <button id="withdrawBtn" class="withdraw-btn">Withdraw</button>
+      <button id="updateBtn" style="display: none;">Update</button>
+    </div>
+
+    <h3>Recent Transactions</h3>
+    <p id="noTxMsg" style="text-align:center;">No transactions yet</p>
+    <table id="txTable" style="display: none;">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Type</th>
+          <th>Amount ($)</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="txTableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    let user = JSON.parse(localStorage.getItem("user")) || null;
+    let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+    let balance = parseFloat(localStorage.getItem("balance")) || 1000;
+    let editingIndex = null;
+
+    const loginContainer = document.getElementById('loginContainer');
+    const dashboardContainer = document.getElementById('dashboardContainer');
+    const loginForm = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const welcomeUser = document.getElementById('welcomeUser');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const balanceEl = document.getElementById('balance');
+    const txTitle = document.getElementById('txTitle');
+    const txAmount = document.getElementById('txAmount');
+    const depositBtn = document.getElementById('depositBtn');
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    const updateBtn = document.getElementById('updateBtn');
+    const txTable = document.getElementById('txTable');
+    const txTableBody = document.getElementById('txTableBody');
+    const noTxMsg = document.getElementById('noTxMsg');
+
+    function showDashboard() {
+      loginContainer.style.display = 'none';
+      dashboardContainer.style.display = 'block';
+      welcomeUser.textContent = `Welcome, ${user.username}`;
+      renderBalance();
+      renderTransactions();
+    }
+
+    function showLogin() {
+      loginContainer.style.display = 'block';
+      dashboardContainer.style.display = 'none';
+    }
+
+    function renderBalance() {
+      balanceEl.textContent = balance.toFixed(2);
+    }
+
+    function renderTransactions() {
+      txTableBody.innerHTML = '';
+      if (transactions.length === 0) {
+        txTable.style.display = 'none';
+        noTxMsg.style.display = 'block';
+      } else {
+        txTable.style.display = 'table';
+        noTxMsg.style.display = 'none';
+        transactions.forEach((tx, index) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${tx.title}</td>
+            <td style="color:${tx.type === 'Deposit' ? 'green' : 'red'}; font-weight:bold;">${tx.type}</td>
+            <td>${tx.amount.toFixed(2)}</td>
+            <td>${tx.date}</td>
+            <td>
+              <button onclick="editTransaction(${index})">Edit</button>
+              <button onclick="deleteTransaction(${index})">Delete</button>
+            </td>
+          `;
+          txTableBody.appendChild(row);
+        });
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem("transactions", JSON.stringify(transactions));
+      localStorage.setItem("balance", balance.toString());
+      localStorage.setItem("user", JSON.stringify(user));
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value.trim();
+      if(username && password){
+        user = { username };
+        saveData();
+        showDashboard();
+      } else {
+        alert("Please enter username and password");
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      user = null;
+      localStorage.removeItem("user");
+      showLogin();
+    });
+
+    depositBtn.addEventListener('click', () => handleTransaction('Deposit'));
+    withdrawBtn.addEventListener('click', () => handleTransaction('Withdraw'));
+    updateBtn.addEventListener('click', updateTransaction);
+
+    function handleTransaction(type){
+      const title = txTitle.value.trim();
+      const amount = parseFloat(txAmount.value);
+      if(!title || !amount || amount <= 0){
+        alert("Please enter valid title and amount");
+        return;
+      }
+      if(type === 'Withdraw' && amount > balance){
+        alert("Insufficient funds");
+        return;
+      }
+      const tx = {
+        title,
+        amount: type === 'Deposit' ? amount : -amount,
+        type,
+        date: new Date().toLocaleString()
+      };
+      transactions.push(tx);
+      balance += tx.amount;
+      saveData();
+      txTitle.value = '';
+      txAmount.value = '';
+      renderBalance();
+      renderTransactions();
+    }
+
+    function editTransaction(index){
+      const tx = transactions[index];
+      txTitle.value = tx.title;
+      txAmount.value = Math.abs(tx.amount);
+      editingIndex = index;
+      depositBtn.style.display = 'none';
+      withdrawBtn.style.display = 'none';
+      updateBtn.style.display = 'inline-block';
+    }
+
+    function updateTransaction(){
+      const title = txTitle.value.trim();
+      const amount = parseFloat(txAmount.value);
+      if(!title || !amount || amount <= 0){
+        alert("Please enter valid title and amount");
+        return;
+      }
+      const oldTx = transactions[editingIndex];
+      const diff = oldTx.type === 'Withdraw' ? -amount : amount;
+      balance = balance - oldTx.amount + diff;
+      transactions[editingIndex] = {
+        title,
+        amount: diff,
+        type: oldTx.type,
+        date: new Date().toLocaleString()
+      };
+      saveData();
+      txTitle.value = '';
+      txAmount.value = '';
+      editingIndex = null;
+      depositBtn.style.display = 'inline-block';
+      withdrawBtn.style.display = 'inline-block';
+      updateBtn.style.display = 'none';
+      renderBalance();
+      renderTransactions();
+    }
+
+    function deleteTransaction(index){
+      const deleted = transactions[index];
+      balance -= deleted.amount;
+      transactions.splice(index,1);
+      saveData();
+      renderBalance();
+      renderTransactions();
+    }
+
+    if(user){
+      showDashboard();
+    } else {
+      showLogin();
+    }
+  </script>
+
+</body>
+</html>
