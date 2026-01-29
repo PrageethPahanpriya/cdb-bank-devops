@@ -10,7 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/<your-username>/cdb-app.git',
+                    url: 'https://github.com/PrageethPahanpriya/cdb-app.git',
                     credentialsId: 'github-pat'
             }
         }
@@ -51,7 +51,7 @@ pipeline {
             echo 'Pipeline succeeded'
         }
         failure {
-            echo '❌ Pipeline failed'
+            echo 'Pipeline failed'
         }
     }
 }
