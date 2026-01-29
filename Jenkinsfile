@@ -7,14 +7,6 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/PrageethPahanpriya/cdb-app.git',
-                    credentialsId: 'github-pat'
-            }
-        }
-
         stage('Build') {
             steps {
                 echo "Building ${APP_NAME}"
